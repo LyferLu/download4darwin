@@ -56,16 +56,17 @@ async def dl4dw(event):
     ydl_opts = {
         # 'format': '(bv*[vcodec^=avc1]/bv*)+(ba[acodec^=mp4a]/ba)',  # 下载视频编码为avc1和音频编码为mp4a的视频
         # 'format': 'bv*[filesize<150M]+ba[filesize<50M]',  # 下载小于150MB的视频和小于50MB的音频
-        'format': 'bv*[filesize<150M][vcodec^=avc1]+ba[filesize<50M][acodec^=mp4a]', # 下载视频编码为avc1且小于150MB的视频和音频编码为mp4a且小于50MB的音频
-        'outtmpl': 'downloaded_video.%(ext)s',  # 保存文件的命名模板
+        'format': 'bv*[filesize<300M][vcodec^=avc1]+ba[filesize<50M][acodec^=mp4a]', # 下载视频编码为avc1且小于150MB的视频和音频编码为mp4a且小于50MB的音频
+        # 'outtmpl': 'downloaded_video.%(ext)s',  # 保存文件的命名模板
         # 'noplaylist': True,  # 不下载播放列表
         # 'quiet': True,  # 安静模式
         # 'no_warnings': True,  # 不显示警告
         # 'max_filesize': 200 * 1024 * 1024,  # 限制下载文件大小为50MB
-        'output': '%(title).200B%(title.201B&…|)s [%(id)s].%(ext)s',  # 输出限制为200字符
+        'outtmpl': '%(title).200B%(title.201B&…|)s [%(id)s].%(ext)s',  # 输出限制为200字符
     }
 
-    await event.respond('正在下载视频，请稍候...')
+    # 发送“正在下载视频，请稍候...”消息并保存消息ID
+    downloading_message = await event.respond('正在下载视频，请稍候...')
 
     try:
         # 使用yt-dlp下载视频
@@ -81,6 +82,13 @@ async def dl4dw(event):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         duration = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS))
+        
+        # 截取视频的第二帧作为预览图
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 1)  # 设置到第二帧
+        ret, frame = cap.read()
+        if ret:
+            preview_image_filename = os.path.splitext(video_filename)[0] + '.jpg'
+            cv2.imwrite(preview_image_filename, frame)
         cap.release()
 
         # 创建视频属性
@@ -93,22 +101,31 @@ async def dl4dw(event):
             )
         ]
 
-        # 发送视频文件给用户
+        # 发送视频文件和预览图像给用户
         await client.send_file(
             event.chat_id,
             video_filename,
+            thumb=preview_image_filename,
             supports_streaming=True,
             attributes=attributes
         )
         
-        # 删除视频文件以节省空间
+        # 删除视频文件和预览图像以节省空间
         os.remove(video_filename)
+        os.remove(preview_image_filename)
+
+        # 删除“正在下载视频，请稍候...”消息
+        await client.delete_messages(event.chat_id, downloading_message)
 
     except Exception as e:
         await event.respond(f'下载视频时出错：{e}')
-        # 删除视频文件以节省空间
+        # 删除视频文件和预览图像以节省空间
         if os.path.exists(video_filename):
             os.remove(video_filename)
+        if os.path.exists(preview_image_filename):
+            os.remove(preview_image_filename)
+        # 删除“正在下载视频，请稍候...”消息
+        await client.delete_messages(event.chat_id, downloading_message)
 
 # 主函数
 async def main():
