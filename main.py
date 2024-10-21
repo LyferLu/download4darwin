@@ -46,14 +46,18 @@ async def help_command(event):
 async def dl4dw(event):
     args = event.message.message.split()
     if len(args) < 2:
-        await event.respond('请提供一个YouTube视频链接，例如：/dl4dw <URL>')
+        error_massage = await event.respond('请提供一个YouTube视频链接，例如：/dl4dw <URL>')
+        await asyncio.sleep(10)
+        await client.delete_messages(event.chat_id, error_massage)
         return
     
     # 使用正则表达式过滤URL前后的多余文本
     url_pattern = re.compile(r'(https?://[^\s]+)')
     match = url_pattern.search(event.message.message)
     if not match:
-        await event.respond('未找到有效的YouTube视频链接，请提供一个有效的URL。')
+        error_message = await event.respond('未找到有效的YouTube视频链接，请提供一个有效的URL。')
+        await asyncio.sleep(10)
+        await client.delete_messages(event.chat_id, error_message)
         return
 
     url = match.group(1)
