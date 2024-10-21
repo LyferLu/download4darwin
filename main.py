@@ -73,6 +73,7 @@ async def dl4dw(event):
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             video_filename = ydl.prepare_filename(info_dict)
+            video_title = os.path.splitext(video_filename)[0]
 
         # 获取视频的宽度、高度和时长信息
         cap = cv2.VideoCapture(video_filename)
@@ -87,7 +88,7 @@ async def dl4dw(event):
         cap.set(cv2.CAP_PROP_POS_FRAMES, 1)  # 设置到第二帧
         ret, frame = cap.read()
         if ret:
-            preview_image_filename = os.path.splitext(video_filename)[0] + '.jpg'
+            preview_image_filename = video_title + '.jpg'
             cv2.imwrite(preview_image_filename, frame)
         cap.release()
 
@@ -101,11 +102,15 @@ async def dl4dw(event):
             )
         ]
 
+        # 获取用户
+        sender = await event.get_sender()
+
         # 发送视频文件和预览图像给用户
         await client.send_file(
             event.chat_id,
             video_filename,
             thumb=preview_image_filename,
+            caption=f"[@{sender.first_name} {sender.last_name}](tg://user?id={sender.id})//{video_title}...[source]({url})",
             supports_streaming=True,
             attributes=attributes
         )
