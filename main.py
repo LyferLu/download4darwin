@@ -18,8 +18,8 @@ client = TelegramClient('bot', API_ID, API_HASH)
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     start_text = (
-        "您好！我是download4darwin，一个用于为darwin提供视频编码兼容下载YouTube视频的Bot。\n"
-        "您可以使用/help获取帮助信息\n"
+        "您好！我是download4darwin，一个为darwin提供视频编码兼容用于下载YouTube视频的Bot。\n"
+        "您可以使用/help 获取帮助信息\n"
     )
     await event.respond(start_text)
 
