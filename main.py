@@ -21,7 +21,10 @@ async def start(event):
         "您好！我是download4darwin，一个为darwin提供视频编码兼容用于下载YouTube视频的Bot。\n"
         "您可以使用/help 获取帮助信息\n"
     )
-    await event.respond(start_text)
+    start_message = await event.respond(start_text)
+    if event.is_group:
+        await asyncio.sleep(30)
+        await client.delete_messages(event.chat_id, start_message)
 
 # 定义/help命令的处理函数
 @client.on(events.NewMessage(pattern='/help'))
@@ -33,7 +36,10 @@ async def help_command(event):
         "/help - 获取帮助信息\n"
         "/dl4dw <URL> - 下载YouTube视频\n"
     )
-    await event.respond(help_text)
+    help_message = await event.respond(help_text)
+    if event.is_group:
+        await asyncio.sleep(30)
+        await client.delete_messages(event.chat_id, help_message)
 
 # 定义/dl4dw命令的处理函数，用于下载YouTube视频
 @client.on(events.NewMessage(pattern='/dl4dw'))
