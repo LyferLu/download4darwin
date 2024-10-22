@@ -62,6 +62,14 @@ async def dl4dw(event):
 
     url = match.group(1)
 
+    # 检查URL是否为YouTube链接
+    youtube_domains = ['youtube.com', 'youtu.be']
+    if not any(domain in url for domain in youtube_domains):
+        error_message = await event.respond('暂时只提供YouTube下载😭，其他下载请使用小发bot')
+        await asyncio.sleep(10)
+        await client.delete_messages(event.chat_id, error_message)
+        return
+
     # 下载视频的配置
     ydl_opts = {
         # 'format': '(bv*[vcodec^=avc1]/bv*)+(ba[acodec^=mp4a]/ba)',  # 下载视频编码为avc1和音频编码为mp4a的视频
