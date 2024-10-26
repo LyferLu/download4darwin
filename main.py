@@ -120,15 +120,20 @@ async def dl4dw(event):
             )
         ]
 
-        # 获取用户
-        sender = await event.get_sender()
+        try:
+            # 获取用户
+            sender = await event.get_sender()
+            caption = f"[@{sender.first_name} {sender.last_name}](tg://user?id={sender.id})//{video_title}...[source]({url})"
+        except Exception as e:
+            caption = f"{video_title}...[source]({url})"
+            print(f"获取用户信息时出错：{e}")
 
         # 发送视频文件和预览图像给用户
         await client.send_file(
             event.chat_id,
             video_filename,
             thumb=preview_image_filename,
-            caption=f"[@{sender.first_name} {sender.last_name}](tg://user?id={sender.id})//{video_title}...[source]({url})",
+            caption=caption,
             supports_streaming=True,
             attributes=attributes
         )
