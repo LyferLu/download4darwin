@@ -123,7 +123,10 @@ async def dl4dw(event):
         try:
             # 获取用户
             sender = await event.get_sender()
-            caption = f"[@{sender.first_name} {sender.last_name}](tg://user?id={sender.id})//{video_title}...[source]({url})"
+            first_name = sender.first_name if sender.first_name else ""
+            last_name = sender.last_name if sender.last_name else ""
+            name = f"{first_name} {last_name}".strip()
+            caption = f"[@{name}](tg://user?id={sender.id})//{video_title}...[source]({url})" if name else f"{video_title}...[source]({url})"
         except Exception as e:
             caption = f"{video_title}...[source]({url})"
             print(f"获取用户信息时出错：{e}")
