@@ -155,8 +155,8 @@ async def dl4dw(event):
                         with open(file_name, 'wb') as f:
                             f.write(response.content)
                         local_files.append(file_name)
-                # 发送图片和文字
-                await client.send_file(event.chat_id, local_files, caption=caption)
+                # 发送图片和文字或文字
+                await client.send_file(event.chat_id, local_files, caption=caption) if local_files else await client.send_message(event.chat_id, message=caption, link_preview=True)
                 # 删除本地文件
                 for local_file in local_files:
                     os.remove(local_file)
