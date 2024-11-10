@@ -117,6 +117,13 @@ async def dl4dw(event):
                 except KeyError:
                     pass
 
+                # 获取post內引用视频链接
+                match = re.search(r'"backstageAttachment":\{"videoRenderer":\{"videoId":"(.*?)"'
+, response.text)
+                if match:
+                    video_id = match.group(1)
+                    text += f'\n\n**[https://www.youtube.com/watch?v={video_id}](https://www.youtube.com/watch?v={video_id})**\n\n'
+
                 media_groups = []
                 try:
                     images = bpr['backstageAttachment']['postMultiImageRenderer']['images']
@@ -156,7 +163,7 @@ async def dl4dw(event):
                             f.write(response.content)
                         local_files.append(file_name)
                 # 发送图片和文字或文字
-                await client.send_file(event.chat_id, local_files, caption=caption) if local_files else await client.send_message(event.chat_id, message=caption, link_preview=True)
+                await client.send_file(event.chat_id, local_files, caption=caption) if local_files else await client.send_message(event.chat_id, message=caption, link_preview=True, parse_mode='md')
                 # 删除本地文件
                 for local_file in local_files:
                     os.remove(local_file)
