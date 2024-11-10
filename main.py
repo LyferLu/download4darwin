@@ -1,6 +1,9 @@
+import json
 import os
 import asyncio
 import re
+from bs4 import BeautifulSoup
+import requests
 from telethon import TelegramClient, events
 from telethon.tl.types import DocumentAttributeVideo
 from yt_dlp import YoutubeDL
@@ -68,6 +71,99 @@ async def dl4dw(event):
         error_message = await event.respond('暂时只提供YouTube下载😭，其他下载请使用小发bot')
         await asyncio.sleep(10)
         await client.delete_messages(event.chat_id, error_message)
+        return
+
+    # youtube社区帖子内容下载
+    youtube_community = ['youtube.com/post/', 'community?lb=']
+    if any(domain in url for domain in youtube_community):
+        if 'community?lb=' in url:
+            post_id = url.split('community?lb=')[-1].split('&')[0]
+        else:
+            post_id = url.split('/')[-1].split('?')[0]
+        url = f'https://www.youtube.com/post/{post_id}'
+
+        # 检查URL是否为有效的YouTube链接
+        response = requests.get(url)
+        if response.status_code != 200:
+            error_message = await event.respond('未找到有效的YouTube链接，请提供一个有效的URL。')
+            await asyncio.sleep(10)
+            await client.delete_messages(event.chat_id, error_message)
+            return
+        downloading_message = await event.respond('正在下载po文，请稍候...')
+        # 使用BeautifulSoup解析HTML内容
+        soup = BeautifulSoup(response.text, 'html.parser')
+        scripts = soup.find_all('script')
+        data = None
+        for script in scripts:
+            if 'ytInitialData' in script.text:
+                yt_raw_data = re.search(r'var ytInitialData = ({.*?});', script.text).group(1)
+                data = json.loads(yt_raw_data)
+                break
+        tabs = data['contents']['twoColumnBrowseResultsRenderer']['tabs']
+        contents = tabs[0]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
+
+        if contents:
+            for content in contents:
+                try:
+                    bpr = content['backstagePostThreadRenderer']['post']['backstagePostRenderer']
+                except KeyError:
+                    continue
+
+                runs = bpr['contentText']['runs']
+                text = ""
+                try:
+                    for run in runs:
+                        text += run['text']
+                except KeyError:
+                    pass
+
+                media_groups = []
+                try:
+                    images = bpr['backstageAttachment']['postMultiImageRenderer']['images']
+                    for image in images:
+                        thumbs = image['backstageImageRenderer']['image']['thumbnails']
+                        img_url = thumbs[-1]['url']
+                        # media_group.append({'type': 'photo', 'media': img_url})
+                        media_groups.append(img_url)
+                except KeyError:
+                    pass
+
+                try:
+                    thumbs = bpr['backstageAttachment']['backstageImageRenderer']['image']['thumbnails']
+                    img_url = thumbs[-1]['url']
+                    # media_groups.append({'type': 'photo', 'media': img_url})
+                    media_groups.append(img_url)
+                except KeyError:
+                    pass
+                try:
+                    # 获取用户
+                    sender = await event.get_sender()
+                    first_name = sender.first_name if sender.first_name else ""
+                    last_name = sender.last_name if sender.last_name else ""
+                    name = f"{first_name} {last_name}".strip()
+                    caption = f"[@{name}](tg://user?id={sender.id})//{text}...[source]({url})" if name else f"{text}...[source]({url})"
+                except Exception as e:
+                    caption = f"{text}...[source]({url})"
+                    print(f"获取用户信息时出错：{e}")
+
+                # 下载图片并保存到本地
+                local_files = []
+                for media_group in media_groups:
+                    response = requests.get(media_group)
+                    if response.status_code == 200:
+                        file_name = media_group.split('/')[-1] + '.jpg'
+                        with open(file_name, 'wb') as f:
+                            f.write(response.content)
+                        local_files.append(file_name)
+                # 发送图片和文字
+                await client.send_file(event.chat_id, local_files, caption=caption)
+                # 删除本地文件
+                for local_file in local_files:
+                    os.remove(local_file)
+        # 删除“正在下载po文，请稍候...”消息
+        await client.delete_messages(event.chat_id, downloading_message)
+
+
         return
 
     # 下载视频的配置
